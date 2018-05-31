@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vue Test App</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <!-- development version, includes helpful console warnings -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <style type="text/css">
+        body {
+            background: #030303;
+        }
+        span {
+            font-family: "Andale Mono";
+            color: #17de04;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-2">
+        <div v-on:click="toggleGen">
+            <span v-for="text in texts">
+            {{ text.message }} <BR>
+            </span>
+        </div>
+        <div class="progress">
+            <progress max="100" value="0"></progress>
+            <div class="progress-value"></div>
+            <div class="progress-bg"><div class="progress-bar"></div></div>
+        </div>
+    </div>
+</body>
+<script>
+    var timeout = 50;
+    var text_length = 130;
+    function makeid() {
+          var text = "";
+          var possible = "ABCDEFGHIJKLMNOPGRSTUVWXYZ+-|=          ";
+
+          for (var i = 0; i < text_length; i++) {
+              text += possible.charAt(Math.floor(Math.random() * possible.length));
+          }
+          return text;
+    }
+
+    var app2 = new Vue({
+        el: '#app-2',
+        data: {
+            texts: [],
+            works: true,
+        },
+        methods: {
+            toggleGen: function() {
+                this.works = !this.works;
+            },
+            newString() {
+
+            }
+        }
+    });
+
+    function newString() {
+        setTimeout(newString, timeout);
+        if (!app2.works) {
+            return;
+        }
+        app2.texts.push({message: makeid()});
+        elements = document.getElementsByName("li");
+        element = elements.item(elements.length - 1);
+        window.scrollTo(0,document.body.scrollHeight);
+    }
+    setTimeout(newString, timeout);
+</script>
+</html>
