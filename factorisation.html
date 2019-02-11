@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Подбор удобных делителей</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+</head>
+<body>
+<div id="app">
+  <p>Введите число</p>
+  <input v-model="inputNumber">
+  <button v-on:click="calculate">Посчитать удобные делители</button>
+  <div v-for="result in results">
+    <p>{{ result }}</p>
+  </div>
+</div>
+
+<script>
+  new Vue({
+    el: '#app',
+    data: {
+      inputNumber: 0,
+      results: [],
+    },
+    methods: {
+      calculate: function() {
+        this.results = [];
+        const inputNumber = this.inputNumber.replace(',', '.') * 100;
+        for (let idx = 0; idx < inputNumber; idx++) {
+          if (inputNumber % idx === 0) {
+            const factorized = inputNumber / idx / 10;
+            const resultString = `${factorized} * ${idx / 10} = ${factorized * idx / 10}`;
+            this.results.push(resultString);
+          }
+        }
+        this.results = result;
+      }
+    }
+  })
+</script>
+</body>
+</html>
