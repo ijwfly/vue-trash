@@ -2,22 +2,27 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Подбор удобных делителей</title>
+  <title>Хохлов Сабатовский раздают кинопакеты</title>
   <script src="https://cdn.jsdelivr.net/npm/vue"></script>
 </head>
 <body>
 <div id="app">
-  <div class="number">
-    <span class="bignumber">{{ numbers[0] }}</span>
-    <button v-on:click="increment(0)">+</button>
-  </div>
-  <div class="number">
-    <span class="bignumber">{{ numbers[1] }}</span>
-    <button v-on:click="increment(1)">+</button>
-  </div>
-  <div class="number">
-    <span class="bignumber">{{ numbers[2] }}</span>
-    <button v-on:click="increment(2)">+</button>
+  <div class="wrapper">
+    <div class="number">
+      <span class="bignumber">КИНОПАКЕТ #1</span>
+      <span class="bignumber">{{numbers[0]}}/350</span>
+      <button v-on:click="increment(0)">+</button>
+    </div>
+    <div class="number">
+      <span class="bignumber">КИНОПАКЕТ #2</span>
+      <span class="bignumber">{{numbers[1]}}/30</span>
+      <button v-on:click="increment(1)">+</button>
+    </div>
+    <div class="number">
+      <span class="bignumber">КИНОПАКЕТ #3</span>
+      <span class="bignumber">{{numbers[2]}}/10</span>
+      <button v-on:click="increment(2)">+</button>
+    </div>
   </div>
 </div>
 </body>
@@ -37,21 +42,37 @@
   })
 </script>
 <style>
+  html {
+    background: black;
+    color: white;
+  }
   #app {
     display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 100vh;
+  }
+  .wrapper {
+    text-align: left;
+    display: flex;
     flex-direction: row;
-    margin: 30%;
   }
   button {
-    width: 32px;
+    width: 70px;
+    height: 70px;
+    background: black;
+    color: white;
+    font-size: 40px;
   }
   .number {
-    width: 200px;
+    min-width: 400px;
     display: flex;
     flex-direction: column;
   }
   .bignumber {
-    font-size: 72px;
+    font-size: 50px;
     font-family: Impact;
   }
 </style>
