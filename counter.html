@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Подбор удобных делителей</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+</head>
+<body>
+<div id="app">
+  <div class="number">
+    <span class="bignumber">{{ numbers[0] }}</span>
+    <button v-on:click="increment(0)">+</button>
+  </div>
+  <div class="number">
+    <span class="bignumber">{{ numbers[1] }}</span>
+    <button v-on:click="increment(1)">+</button>
+  </div>
+  <div class="number">
+    <span class="bignumber">{{ numbers[2] }}</span>
+    <button v-on:click="increment(2)">+</button>
+  </div>
+</div>
+</body>
+
+<script>
+  new Vue({
+    el: '#app',
+    data: {
+      numbers: [0, 0, 0],
+    },
+    methods: {
+      increment: function(index) {
+        this.numbers[index] = this.numbers[index] + 1;
+        this.numbers = this.numbers.slice();
+      }
+    }
+  })
+</script>
+<style>
+  #app {
+    display: flex;
+    flex-direction: row;
+    margin: 30%;
+  }
+  button {
+    width: 32px;
+  }
+  .number {
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+  }
+  .bignumber {
+    font-size: 72px;
+    font-family: Impact;
+  }
+</style>
+</html>
