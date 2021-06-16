@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Excel пиксели</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+</head>
+<body>
+<div id="app">
+  <div>
+    <p>Высота (в см)</p>
+    <input v-model="height">
+    <p>Ширина (в см)</p>
+    <input v-model="width">
+  </div>
+
+  <p>
+    <button v-on:click="calculate">Вычислить</button>
+  </p>
+
+  <div>
+    <p>Высота (в px)</p>
+    <p>{{resultHeight}}</p>
+    <p>Ширина (в px)</p>
+    <p>{{resultWidth}}</p>
+  </div>
+</div>
+</body>
+
+<script>
+  new Vue({
+    el: '#app',
+    data: {
+      height: 0,
+      width: 0,
+      resultHeight: 0,
+      resultWidth: 0
+    },
+    methods: {
+      calculate: function() {
+        this.resultHeight = this.height * 38
+        this.resultWidth = this.width * 38
+      }
+    }
+  })
+</script>
+</html>
