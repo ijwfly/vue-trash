@@ -17,11 +17,13 @@
 </body>
 
 <script>
-  new Vue({
+  Vue.createApp({
     el: '#app',
-    data: {
-      inputNumber: 0,
-      results: [],
+    data() {
+      return {
+        inputNumber: 0,
+        results: [],
+      }
     },
     methods: {
       calculate: function() {
@@ -36,6 +38,6 @@
         }
       }
     }
-  })
+  }).mount("#app")
 </script>
 </html>
