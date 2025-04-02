@@ -2,215 +2,1442 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Измерение размеров на чертеже</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
-        .container {
+        :root {
+            --primary-color: #4a6cfa;
+            --secondary-color: #5c7cff;
+            --accent-color: #f44336;
+            --text-color: #333;
+            --bg-color: #f5f5f5;
+            --panel-bg: #ffffff;
+            --panel-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --line-color: #ff5722;
+            --dot-color: #f44336;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #5c7cff;
+            --secondary-color: #4a6cfa;
+            --accent-color: #ff7961;
+            --text-color: #f5f5f5;
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --panel-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --line-color: #ff7043;
+            --dot-color: #ff5252;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .app-container {
             display: flex;
+            flex-direction: column;
             height: 100vh;
         }
-        
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
         .image-container {
             flex: 1;
-            overflow: auto;
             position: relative;
+            overflow: hidden;
             background: #808080;
+            touch-action: none;
         }
-        
+
         #mainImage {
             display: block;
-            position: relative;
+            position: absolute;
+            transform-origin: 0 0;
+            touch-action: none;
         }
-        
-        .controls {
-            width: 200px;
-            padding: 10px;
-            background: #f0f0f0;
-            border-left: 1px solid #ccc;
+
+        .toolbar {
+            display: flex;
+            padding: 8px;
+            background-color: var(--panel-bg);
+            box-shadow: var(--panel-shadow);
+            z-index: 10;
+            overflow-x: auto;
+            white-space: nowrap;
         }
-        
-        .button {
-            display: block;
-            width: 100%;
-            margin: 5px 0;
-            padding: 10px;
+
+        .toolbar-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            background-color: transparent;
+            border: none;
+            border-radius: 4px;
+            color: var(--text-color);
+            cursor: pointer;
+            margin: 0 4px;
+            transition: background-color 0.2s;
         }
-        
+
+        .toolbar-button:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .toolbar-button.active {
+            color: var(--primary-color);
+            background-color: rgba(74, 108, 250, 0.1);
+        }
+
+        .toolbar-button i {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+
+        .toolbar-button span {
+            font-size: 0.8rem;
+        }
+
         .measurement-line {
             position: absolute;
             pointer-events: none;
+            z-index: 5;
+            height: 0;
+            transform-origin: left center;
         }
-        
+
         .measurement-dot {
             position: absolute;
-            width: 4px;
-            height: 4px;
-            background: red;
+            width: 8px;
+            height: 8px;
+            background: var(--dot-color);
             border-radius: 50%;
+            margin-left: -4px;
+            margin-top: -4px;
             pointer-events: none;
+            z-index: 6;
+            box-shadow: 0 0 0 2px white;
         }
-        
+
         .measurement-text {
             position: absolute;
-            color: red;
+            color: white;
             font: bold 12px Arial;
-            background: white;
-            padding: 2px;
+            background: var(--line-color);
+            padding: 2px 6px;
+            border-radius: 3px;
             pointer-events: none;
+            z-index: 7;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            white-space: nowrap;
+        }
+
+        .upload-zone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--panel-bg);
+            z-index: 4;
+        }
+
+        .upload-zone.hidden {
+            display: none;
+        }
+
+        .upload-zone i {
+            font-size: 4rem;
+            color: var(--primary-color);
+            margin-bottom: 16px;
+        }
+
+        .upload-zone-text {
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+            text-align: center;
+            padding: 0 16px;
+        }
+
+        .upload-button {
+            padding: 12px 24px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .upload-button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .upload-hint {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            opacity: 0.7;
+            text-align: center;
+            padding: 0 20px;
+            max-width: 500px;
+        }
+
+        .keyboard-shortcut {
+            display: inline-block;
+            background-color: rgba(0, 0, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin: 0 2px;
+            font-family: monospace;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--panel-bg);
+            padding: 24px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 400px;
+            box-shadow: var(--panel-shadow);
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .modal-button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+
+        .modal-button.cancel {
+            background-color: #e0e0e0;
+            color: var(--text-color);
+        }
+
+        .modal-button.confirm {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--panel-bg);
+            color: var(--text-color);
+            padding: 12px 24px;
+            border-radius: 4px;
+            box-shadow: var(--panel-shadow);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .toast.visible {
+            opacity: 1;
+        }
+
+        .control-panel {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .zoom-controls {
+            display: flex;
+            flex-direction: column;
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--panel-shadow);
+            margin-bottom: 8px;
+        }
+
+        .zoom-button {
+            padding: 12px;
+            border: none;
+            background-color: transparent;
+            color: var(--text-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .zoom-button:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .reset-button {
+            padding: 12px;
+            border: none;
+            background-color: var(--panel-bg);
+            color: var(--accent-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: var(--panel-shadow);
+            transition: background-color 0.2s;
+        }
+
+        .reset-button:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .measurements-panel {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            box-shadow: var(--panel-shadow);
+            padding: 12px;
+            z-index: 10;
+            max-width: 300px;
+            max-height: 50vh;
+            overflow-y: auto;
+            transform: translateX(110%);
+            transition: transform 0.3s;
+        }
+
+        .measurements-panel.visible {
+            transform: translateX(0);
+        }
+
+        .measurements-title {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .measurements-title button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .measurement-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .measurement-info {
+            font-size: 0.9rem;
+        }
+
+        .measurement-value {
+            font-weight: bold;
+        }
+
+        .measurement-actions {
+            display: flex;
+        }
+
+        .measurement-action {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 1rem;
+        }
+
+        .measurement-action:hover {
+            color: var(--primary-color);
+        }
+
+        .info-panel {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            box-shadow: var(--panel-shadow);
+            padding: 12px;
+            z-index: 10;
+            max-width: 300px;
+            font-size: 0.9rem;
+        }
+
+        /* Адаптивные стили для мобильных устройств */
+        @media (max-width: 768px) {
+            .toolbar {
+                padding: 4px;
+                justify-content: center;
+            }
+
+            .toolbar-button {
+                padding: 8px 12px;
+            }
+
+            .modal-content {
+                width: 90%;
+            }
+
+            .measurements-panel {
+                max-width: 80%;
+            }
+
+            .info-panel {
+                max-width: 70%;
+            }
+
+            .control-panel {
+                bottom: 80px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-title {
+                font-size: 1rem;
+            }
+
+            .toolbar-button {
+                padding: 8px 8px;
+            }
+
+            .toolbar-button span {
+                font-size: 0.7rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="image-container" id="imageContainer">
-            <img id="mainImage" alt="Чертеж">
+    <div class="app-container">
+        <header>
+            <div class="header-title">Измерение размеров на чертеже</div>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </header>
+
+        <div class="content">
+            <div class="toolbar">
+                <button class="toolbar-button" id="btnUpload">
+                    <i class="fas fa-upload"></i>
+                    <span>Загрузить</span>
+                </button>
+                <button class="toolbar-button" id="btnPaste">
+                    <i class="fas fa-paste"></i>
+                    <span>Вставить</span>
+                </button>
+                <button class="toolbar-button" id="btnScale">
+                    <i class="fas fa-ruler"></i>
+                    <span>Масштаб</span>
+                </button>
+                <button class="toolbar-button" id="btnMeasure">
+                    <i class="fas fa-arrows-alt-h"></i>
+                    <span>Измерить</span>
+                </button>
+                <button class="toolbar-button" id="btnMeasurements">
+                    <i class="fas fa-list"></i>
+                    <span>Измерения</span>
+                </button>
+                <button class="toolbar-button" id="btnExport">
+                    <i class="fas fa-download"></i>
+                    <span>Экспорт</span>
+                </button>
+            </div>
+
+            <div class="image-container" id="imageContainer">
+                <div class="upload-zone" id="uploadZone">
+                    <i class="fas fa-file-image"></i>
+                    <div class="upload-zone-text">Загрузите или вставьте изображение чертежа</div>
+                    <button class="upload-button" id="uploadButton">Выбрать файл</button>
+                    <div class="upload-hint">
+                        Вы также можете вставить изображение из буфера обмена, нажав 
+                        <span class="keyboard-shortcut">Ctrl</span>+<span class="keyboard-shortcut">V</span> 
+                        (или <span class="keyboard-shortcut">⌘</span>+<span class="keyboard-shortcut">V</span> на Mac)
+                    </div>
+                </div>
+                <img id="mainImage" alt="Чертеж">
+                <input type="file" id="fileInput" accept="image/*">
+                
+                <div class="control-panel">
+                    <div class="zoom-controls">
+                        <button class="zoom-button" id="zoomIn">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="zoom-button" id="zoomOut">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                    <button class="reset-button" id="resetView">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+
+                <div class="info-panel" id="infoPanel"></div>
+
+                <div class="measurements-panel" id="measurementsPanel">
+                    <div class="measurements-title">
+                        <span>Измерения</span>
+                        <button id="closeMeasurements"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div id="measurementsList"></div>
+                </div>
+            </div>
         </div>
-        <div class="controls">
-            <input type="file" id="fileInput" accept="image/*" class="button">
-            <button class="button" id="btnScale">Установить масштаб</button>
-            <button class="button" id="btnMeasure">Измерить</button>
-            <div id="infoPanel" style="margin-top: 20px;"></div>
+
+        <div class="modal" id="scaleModal">
+            <div class="modal-content">
+                <h3 class="modal-title">Введите известное расстояние</h3>
+                <input type="number" class="modal-input" id="scaleInput" placeholder="Введите значение">
+                <div class="modal-actions">
+                    <button class="modal-button cancel" id="scaleCancel">Отмена</button>
+                    <button class="modal-button confirm" id="scaleConfirm">Подтвердить</button>
+                </div>
+            </div>
         </div>
+
+        <div class="toast" id="toast"></div>
     </div>
 
     <script>
+        // Глобальные переменные
         let scaleFactor = null;
         let currentMode = null;
         let clickPoints = [];
+        let measurements = [];
         let measurementElements = [];
+        let currentScale = 1;
+        let currentTranslate = { x: 0, y: 0 };
+        let startPan = { x: 0, y: 0 };
+        let isPanning = false;
+        let lastTouchDistance = 0;
+        let isDarkTheme = false;
+        let updatePending = false;
 
+        // DOM-элементы
         const imageContainer = document.getElementById('imageContainer');
         const mainImage = document.getElementById('mainImage');
         const fileInput = document.getElementById('fileInput');
+        const btnUpload = document.getElementById('btnUpload');
+        const btnPaste = document.getElementById('btnPaste');
         const btnScale = document.getElementById('btnScale');
         const btnMeasure = document.getElementById('btnMeasure');
+        const btnMeasurements = document.getElementById('btnMeasurements');
+        const btnExport = document.getElementById('btnExport');
         const infoPanel = document.getElementById('infoPanel');
+        const uploadZone = document.getElementById('uploadZone');
+        const uploadButton = document.getElementById('uploadButton');
+        const zoomIn = document.getElementById('zoomIn');
+        const zoomOut = document.getElementById('zoomOut');
+        const resetView = document.getElementById('resetView');
+        const scaleModal = document.getElementById('scaleModal');
+        const scaleInput = document.getElementById('scaleInput');
+        const scaleCancel = document.getElementById('scaleCancel');
+        const scaleConfirm = document.getElementById('scaleConfirm');
+        const toast = document.getElementById('toast');
+        const measurementsPanel = document.getElementById('measurementsPanel');
+        const measurementsList = document.getElementById('measurementsList');
+        const closeMeasurements = document.getElementById('closeMeasurements');
+        const themeToggle = document.getElementById('themeToggle');
 
-        // Загрузка изображения
-        fileInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    resetState();
-                    mainImage.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+        // Инициализация приложения
+        function initApp() {
+            // Обработчики событий для кнопок
+            btnUpload.addEventListener('click', () => fileInput.click());
+            btnPaste.addEventListener('click', promptPaste);
+            uploadButton.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileUpload);
+            btnScale.addEventListener('click', startScaleMode);
+            btnMeasure.addEventListener('click', startMeasureMode);
+            btnMeasurements.addEventListener('click', toggleMeasurementsPanel);
+            btnExport.addEventListener('click', exportMeasurements);
+            zoomIn.addEventListener('click', () => zoomImage(1.2));
+            zoomOut.addEventListener('click', () => zoomImage(0.8));
+            resetView.addEventListener('click', resetImageView);
+            scaleCancel.addEventListener('click', closeScaleModal);
+            scaleConfirm.addEventListener('click', confirmScale);
+            closeMeasurements.addEventListener('click', toggleMeasurementsPanel);
+            themeToggle.addEventListener('click', toggleTheme);
 
-        // Режим установки масштаба
-        btnScale.addEventListener('click', function() {
-            currentMode = 'scale';
-            clickPoints = [];
-            clearMeasurements();
-            showInfo("Кликните на две точки известного расстояния");
-        });
-
-        // Режим измерения
-        btnMeasure.addEventListener('click', function() {
-            if (!scaleFactor) {
-                alert("Сначала установите масштаб!");
-                return;
-            }
-            currentMode = 'measure';
-            clickPoints = [];
-            clearMeasurements();
-            showInfo("Кликните на две точки для измерения");
-        });
-
-        // Обработка кликов по изображению
-        imageContainer.addEventListener('click', function(e) {
-            if (!currentMode) return;
-
-            const rect = mainImage.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            addMeasurementDot(x, y);
-            clickPoints.push({x, y});
-
-            if (clickPoints.length === 2) {
-                if (currentMode === 'scale') {
-                    processScale();
-                } else if (currentMode === 'measure') {
-                    processMeasurement();
-                }
-                clickPoints = [];
-                currentMode = null;
-            }
-        });
-
-        function processScale() {
-            const [p1, p2] = clickPoints;
-            const pixelDistance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-            const realDistance = prompt("Введите реальное расстояние:");
+            // Обработчики событий для изображения
+            imageContainer.addEventListener('mousedown', startPanImage);
+            imageContainer.addEventListener('touchstart', handleTouchStart, {passive: false});
+            window.addEventListener('mousemove', panImage);
+            window.addEventListener('touchmove', handleTouchMove, {passive: false});
+            window.addEventListener('mouseup', endPanImage);
+            window.addEventListener('touchend', handleTouchEnd);
+            imageContainer.addEventListener('click', handleImageClick);
+            imageContainer.addEventListener('wheel', handleMouseWheel, {passive: false});
             
-            if (realDistance && realDistance > 0) {
-                scaleFactor = realDistance / pixelDistance;
-                drawMeasurementLine(p1, p2, realDistance.toFixed(2), 'blue');
-                showInfo(`Масштаб: 1px = ${scaleFactor.toFixed(4)} ед.`);
+            // Обработчик вставки из буфера обмена
+            document.addEventListener('paste', handlePaste);
+
+            // Установка начального состояния
+            updateInfoPanel('Загрузите изображение чертежа');
+            loadTheme();
+        }
+
+        // Планирование обновления элементов (для оптимизации производительности)
+        function scheduleElementsUpdate() {
+            if (!updatePending) {
+                updatePending = true;
+                requestAnimationFrame(() => {
+                    updateElementsPositions();
+                    updatePending = false;
+                });
             }
         }
 
-        function processMeasurement() {
+        // Обработка вставки из буфера обмена
+        function handlePaste(e) {
+            // Проверяем, содержит ли буфер обмена файлы или изображения
+            if (e.clipboardData && e.clipboardData.items) {
+                const items = e.clipboardData.items;
+                
+                for (let i = 0; i < items.length; i++) {
+                    // Проверяем, является ли элемент изображением
+                    if (items[i].type.indexOf('image') !== -1) {
+                        // Получаем файл из буфера обмена
+                        const blob = items[i].getAsFile();
+                        
+                        // Загружаем изображение
+                        loadImageFromFile(blob, 'Изображение вставлено из буфера обмена');
+                        e.preventDefault();
+                        return;
+                    }
+                }
+            }
+            
+            // Если в буфере обмена нет изображений
+            showToast('Буфер обмена не содержит изображений');
+        }
+
+        // Подсказка о вставке из буфера обмена
+        function promptPaste() {
+            const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+            const shortcut = isMac ? '⌘+V' : 'Ctrl+V';
+            showToast(`Нажмите ${shortcut} для вставки изображения из буфера обмена`);
+        }
+
+        // Обработка загрузки файла
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                loadImageFromFile(file, 'Изображение загружено');
+            }
+        }
+
+        // Загрузка изображения из файла (общая функция для загрузки и вставки)
+        function loadImageFromFile(file, successMessage) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                mainImage.src = event.target.result;
+                mainImage.onload = function() {
+                    resetState();
+                    uploadZone.classList.add('hidden');
+                    centerImage();
+                    showToast(successMessage);
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Центрирование изображения
+        function centerImage() {
+            const containerWidth = imageContainer.clientWidth;
+            const containerHeight = imageContainer.clientHeight;
+            const imgWidth = mainImage.naturalWidth;
+            const imgHeight = mainImage.naturalHeight;
+
+            // Масштабируем изображение, чтобы оно помещалось в контейнер
+            const scaleX = containerWidth / imgWidth;
+            const scaleY = containerHeight / imgHeight;
+            currentScale = Math.min(scaleX, scaleY) * 0.9; // Небольшой отступ от краев
+
+            // Центрируем изображение
+            currentTranslate.x = (containerWidth - imgWidth * currentScale) / 2;
+            currentTranslate.y = (containerHeight - imgHeight * currentScale) / 2;
+
+            updateImageTransform();
+        }
+
+        // Обновление трансформации изображения
+        function updateImageTransform() {
+            mainImage.style.transform = `translate(${currentTranslate.x}px, ${currentTranslate.y}px) scale(${currentScale})`;
+        }
+
+        // Начало режима установки масштаба
+        function startScaleMode() {
+            if (!mainImage.src) {
+                showToast('Сначала загрузите изображение');
+                return;
+            }
+            
+            setActiveMode('scale');
+            clickPoints = [];
+            clearTemporaryMeasurements();
+            updateInfoPanel('Выберите две точки на изображении для установки масштаба');
+        }
+
+        // Начало режима измерения
+        function startMeasureMode() {
+            if (!mainImage.src) {
+                showToast('Сначала загрузите изображение');
+                return;
+            }
+            
+            if (!scaleFactor) {
+                showToast('Сначала установите масштаб');
+                startScaleMode();
+                return;
+            }
+            
+            setActiveMode('measure');
+            clickPoints = [];
+            clearTemporaryMeasurements();
+            updateInfoPanel('Выберите две точки для измерения расстояния');
+        }
+
+        // Установка активного режима
+        function setActiveMode(mode) {
+            currentMode = mode;
+            
+            // Сброс активных кнопок
+            document.querySelectorAll('.toolbar-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Активация соответствующей кнопки
+            if (mode === 'scale') {
+                btnScale.classList.add('active');
+            } else if (mode === 'measure') {
+                btnMeasure.classList.add('active');
+            }
+        }
+
+        // Обработка нажатия на изображение
+        function handleImageClick(e) {
+            if (!currentMode || isPanning) return;
+            
+            // Преобразуем координаты клика в координаты изображения
+            const point = transformClientToImageCoordinates(e.clientX, e.clientY);
+            
+            // Добавляем точку для измерения
+            addMeasurementPoint(point.x, point.y);
+            
+            // Если это вторая точка, завершаем измерение
+            if (clickPoints.length === 2) {
+                if (currentMode === 'scale') {
+                    openScaleModal();
+                } else if (currentMode === 'measure') {
+                    completeMeasurement();
+                }
+            }
+        }
+
+        // Преобразование координат клиента в координаты изображения
+        function transformClientToImageCoordinates(clientX, clientY) {
+            const rect = imageContainer.getBoundingClientRect();
+            const x = (clientX - rect.left - currentTranslate.x) / currentScale;
+            const y = (clientY - rect.top - currentTranslate.y) / currentScale;
+            return { x, y };
+        }
+
+        // Преобразование координат изображения в координаты клиента
+        function transformImageToClientCoordinates(imgX, imgY) {
+            const rect = imageContainer.getBoundingClientRect();
+            const x = imgX * currentScale + currentTranslate.x + rect.left;
+            const y = imgY * currentScale + currentTranslate.y + rect.top;
+            return { x, y };
+        }
+
+        // Добавление точки измерения
+        function addMeasurementPoint(x, y) {
+            clickPoints.push({ x, y });
+            
+            // Создаем точку на изображении
+            const dot = document.createElement('div');
+            dot.className = 'measurement-dot';
+            
+            const clientPoint = transformImageToClientCoordinates(x, y);
+            const containerRect = imageContainer.getBoundingClientRect();
+            
+            dot.style.left = (clientPoint.x - containerRect.left) + 'px';
+            dot.style.top = (clientPoint.y - containerRect.top) + 'px';
+            
+            imageContainer.appendChild(dot);
+            measurementElements.push(dot);
+            
+            // Если это вторая точка, добавляем линию между точками
+            if (clickPoints.length === 2) {
+                drawMeasurementLine();
+            }
+        }
+
+        // Отрисовка линии измерения
+        function drawMeasurementLine(final = false) {
+            const [p1, p2] = clickPoints;
+            
+            const clientP1 = transformImageToClientCoordinates(p1.x, p1.y);
+            const clientP2 = transformImageToClientCoordinates(p2.x, p2.y);
+            const containerRect = imageContainer.getBoundingClientRect();
+            
+            // Вычисляем параметры линии
+            const dx = clientP2.x - clientP1.x;
+            const dy = clientP2.y - clientP1.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            
+            // Создаем линию
+            const line = document.createElement('div');
+            line.className = 'measurement-line';
+            line.style.left = (clientP1.x - containerRect.left) + 'px';
+            line.style.top = (clientP1.y - containerRect.top) + 'px';
+            line.style.width = length + 'px';
+            line.style.transform = `rotate(${angle}deg)`;
+            line.style.borderTop = `2px solid ${final ? 'var(--line-color)' : '#aaa'}`;
+            
+            // Вычисляем реальное расстояние
+            const pixelDistance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            const realDistance = scaleFactor ? (pixelDistance * scaleFactor) : pixelDistance;
+            const displayDistance = scaleFactor ? `${realDistance.toFixed(2)}` : '?';
+            
+            // Создаем текст с расстоянием
+            const text = document.createElement('div');
+            text.className = 'measurement-text';
+            
+            const centerX = (clientP1.x + clientP2.x) / 2 - containerRect.left;
+            const centerY = (clientP1.y + clientP2.y) / 2 - containerRect.top;
+            
+            text.style.left = centerX + 'px';
+            text.style.top = centerY + 'px';
+            text.textContent = displayDistance;
+            
+            imageContainer.appendChild(line);
+            imageContainer.appendChild(text);
+            
+            measurementElements.push(line, text);
+            
+            return { line, text, distance: realDistance };
+        }
+
+        // Открытие модального окна для ввода масштаба
+        function openScaleModal() {
+            scaleModal.classList.add('visible');
+            scaleInput.focus();
+        }
+
+        // Закрытие модального окна масштаба
+        function closeScaleModal() {
+            scaleModal.classList.remove('visible');
+            clearTemporaryMeasurements();
+            clickPoints = [];
+            currentMode = null;
+            setActiveMode(null);
+        }
+
+        // Подтверждение масштаба
+        function confirmScale() {
+            const realDistance = parseFloat(scaleInput.value);
+            
+            if (isNaN(realDistance) || realDistance <= 0) {
+                alert('Пожалуйста, введите корректное положительное значение');
+                return;
+            }
+            
+            const [p1, p2] = clickPoints;
+            const pixelDistance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            
+            scaleFactor = realDistance / pixelDistance;
+            
+            // Сохраняем масштаб как постоянное измерение
+            const element = drawMeasurementLine(true);
+            element.text.textContent = `${realDistance.toFixed(2)} (масштаб)`;
+            element.text.style.backgroundColor = 'var(--primary-color)';
+            
+            const measurement = {
+                type: 'scale',
+                points: [...clickPoints],
+                distance: realDistance,
+                elements: [element.line, element.text]
+            };
+            
+            measurements.push(measurement);
+            updateMeasurementsList();
+            
+            scaleModal.classList.remove('visible');
+            currentMode = null;
+            clickPoints = [];
+            setActiveMode(null);
+            
+            showToast(`Масштаб установлен: 1 пиксель = ${scaleFactor.toFixed(6)} единиц`);
+            updateInfoPanel(`Масштаб: 1 пиксель = ${scaleFactor.toFixed(6)} единиц`);
+        }
+
+        // Завершение измерения
+        function completeMeasurement() {
             const [p1, p2] = clickPoints;
             const pixelDistance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
             const realDistance = pixelDistance * scaleFactor;
-            drawMeasurementLine(p1, p2, realDistance.toFixed(2), 'red');
+            
+            const element = drawMeasurementLine(true);
+            
+            const measurement = {
+                type: 'distance',
+                points: [...clickPoints],
+                distance: realDistance,
+                elements: [element.line, element.text]
+            };
+            
+            measurements.push(measurement);
+            updateMeasurementsList();
+            
+            clickPoints = [];
+            currentMode = null;
+            setActiveMode(null);
+            
+            showToast(`Измерение: ${realDistance.toFixed(2)}`);
         }
 
-        function drawMeasurementLine(p1, p2, text, color) {
-            // Линия
-            const line = document.createElement('div');
-            line.className = 'measurement-line';
-            Object.assign(line.style, {
-                left: `${p1.x}px`,
-                top: `${p1.y}px`,
-                width: `${Math.hypot(p2.x - p1.x, p2.y - p1.y)}px`,
-                transform: `rotate(${Math.atan2(p2.y - p1.y, p2.x - p1.x)}rad)`,
-                border: `2px solid ${color}`
+        // Обновление списка измерений
+        function updateMeasurementsList() {
+            measurementsList.innerHTML = '';
+            
+            if (measurements.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.textContent = 'Нет сохраненных измерений';
+                emptyMessage.style.padding = '8px 0';
+                measurementsList.appendChild(emptyMessage);
+                return;
+            }
+            
+            measurements.forEach((measurement, index) => {
+                const item = document.createElement('div');
+                item.className = 'measurement-item';
+                
+                const info = document.createElement('div');
+                info.className = 'measurement-info';
+                
+                if (measurement.type === 'scale') {
+                    info.innerHTML = `<span class="measurement-value">${measurement.distance.toFixed(2)}</span> (масштаб)`;
+                } else {
+                    info.innerHTML = `<span class="measurement-value">${measurement.distance.toFixed(2)}</span>`;
+                }
+                
+                const actions = document.createElement('div');
+                actions.className = 'measurement-actions';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'measurement-action';
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                deleteBtn.addEventListener('click', () => deleteMeasurement(index));
+                
+                const focusBtn = document.createElement('button');
+                focusBtn.className = 'measurement-action';
+                focusBtn.innerHTML = '<i class="fas fa-search"></i>';
+                focusBtn.addEventListener('click', () => focusOnMeasurement(index));
+                
+                actions.appendChild(focusBtn);
+                actions.appendChild(deleteBtn);
+                
+                item.appendChild(info);
+                item.appendChild(actions);
+                
+                measurementsList.appendChild(item);
+            });
+        }
+
+        // Удаление измерения
+        function deleteMeasurement(index) {
+            const measurement = measurements[index];
+            
+            // Удаляем элементы из DOM
+            measurement.elements.forEach(element => {
+                element.remove();
             });
             
-            // Текст
-            const textEl = document.createElement('div');
-            textEl.className = 'measurement-text';
-            textEl.textContent = text;
-            textEl.style.left = `${(p1.x + p2.x)/2}px`;
-            textEl.style.top = `${(p1.y + p2.y)/2}px`;
-            textEl.style.color = color;
-
-            imageContainer.append(line, textEl);
-            measurementElements.push(line, textEl);
+            // Если удаляем масштаб, сбрасываем scaleFactor
+            if (measurement.type === 'scale') {
+                scaleFactor = null;
+                updateInfoPanel('Масштаб сброшен. Установите масштаб снова.');
+            }
+            
+            // Удаляем измерение из массива
+            measurements.splice(index, 1);
+            updateMeasurementsList();
+            
+            showToast('Измерение удалено');
         }
 
-        function addMeasurementDot(x, y) {
-            const dot = document.createElement('div');
-            dot.className = 'measurement-dot';
-            dot.style.left = `${x - 2}px`;
-            dot.style.top = `${y - 2}px`;
-            imageContainer.appendChild(dot);
-            measurementElements.push(dot);
+        // Фокус на измерении
+        function focusOnMeasurement(index) {
+            const measurement = measurements[index];
+            const p1 = measurement.points[0];
+            const p2 = measurement.points[1];
+            
+            // Вычисляем центр измерения
+            const centerX = (p1.x + p2.x) / 2;
+            const centerY = (p1.y + p2.y) / 2;
+            
+            // Расстояние между точками
+            const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            
+            // Подбираем масштаб, чтобы измерение хорошо было видно
+            const containerWidth = imageContainer.clientWidth;
+            const containerHeight = imageContainer.clientHeight;
+            
+            // Определяем масштаб, чтобы измерение занимало 60% контейнера
+            const targetScale = Math.min(
+                containerWidth / (distance * 1.5),
+                containerHeight / (distance * 1.5)
+            );
+            
+            // Ограничиваем масштаб разумными пределами
+            currentScale = Math.min(Math.max(targetScale, 0.1), 5);
+            
+            // Центрируем измерение в контейнере
+            currentTranslate.x = containerWidth / 2 - centerX * currentScale;
+            currentTranslate.y = containerHeight / 2 - centerY * currentScale;
+            
+            updateImageTransform();
+            scheduleElementsUpdate();
+            toggleMeasurementsPanel();
         }
 
-        function clearMeasurements() {
-            measurementElements.forEach(el => el.remove());
+        // Экспорт измерений
+        function exportMeasurements() {
+            if (measurements.length === 0) {
+                showToast('Нет измерений для экспорта');
+                return;
+            }
+            
+            const data = measurements.map(m => ({
+                type: m.type,
+                distance: m.distance,
+                points: m.points
+            }));
+            
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'measurements.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('Измерения экспортированы');
+        }
+
+        // Очистка временных измерений
+        function clearTemporaryMeasurements() {
+            measurementElements.forEach(element => {
+                element.remove();
+            });
             measurementElements = [];
         }
 
+        // Полный сброс состояния
         function resetState() {
             scaleFactor = null;
             currentMode = null;
             clickPoints = [];
-            clearMeasurements();
-            showInfo('Загрузите изображение и установите масштаб');
+            clearTemporaryMeasurements();
+            
+            // Удаляем все существующие измерения
+            measurements.forEach(measurement => {
+                measurement.elements.forEach(element => {
+                    element.remove();
+                });
+            });
+            
+            measurements = [];
+            updateMeasurementsList();
+            currentScale = 1;
+            currentTranslate = { x: 0, y: 0 };
+            updateImageTransform();
+            
+            setActiveMode(null);
+            updateInfoPanel('Загрузите изображение и установите масштаб');
         }
 
-        function showInfo(text) {
-            infoPanel.textContent = text;
+        // Сброс вида изображения
+        function resetImageView() {
+            if (!mainImage.src) return;
+            centerImage();
+            scheduleElementsUpdate();
         }
 
-        // Инициализация
-        resetState();
+        // Начало перемещения изображения
+        function startPanImage(e) {
+            if (e.button !== 0) return; // Только левая кнопка мыши
+            
+            // Если в режиме измерения, не начинаем перемещение
+            if (currentMode) return;
+            
+            isPanning = true;
+            startPan = { x: e.clientX, y: e.clientY };
+            e.preventDefault();
+        }
+
+        // Перемещение изображения
+        function panImage(e) {
+            if (!isPanning) return;
+            
+            const dx = e.clientX - startPan.x;
+            const dy = e.clientY - startPan.y;
+            
+            currentTranslate.x += dx;
+            currentTranslate.y += dy;
+            
+            startPan = { x: e.clientX, y: e.clientY };
+            updateImageTransform();
+            
+            // Добавляем вызов функции обновления элементов измерений
+            scheduleElementsUpdate();
+        }
+
+        // Завершение перемещения изображения
+        function endPanImage() {
+            isPanning = false;
+        }
+
+        // Обработка события колеса мыши для масштабирования
+        function handleMouseWheel(e) {
+            e.preventDefault();
+            
+            // Определяем направление прокрутки
+            const delta = Math.sign(e.deltaY);
+            const scaleFactor = delta > 0 ? 0.9 : 1.1; // Масштаб уменьшения/увеличения
+            
+            // Получаем координаты курсора
+            const rect = imageContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Применяем масштабирование с учетом позиции курсора
+            zoomImageAtPoint(scaleFactor, mouseX, mouseY);
+        }
+
+        // Масштабирование изображения
+        function zoomImage(factor) {
+            const containerRect = imageContainer.getBoundingClientRect();
+            const centerX = containerRect.width / 2;
+            const centerY = containerRect.height / 2;
+            
+            zoomImageAtPoint(factor, centerX, centerY);
+        }
+
+        // Масштабирование в точке
+        function zoomImageAtPoint(factor, pointX, pointY) {
+            // Координаты точки до масштабирования
+            const beforeX = (pointX - currentTranslate.x) / currentScale;
+            const beforeY = (pointY - currentTranslate.y) / currentScale;
+            
+            // Новый масштаб
+            const newScale = currentScale * factor;
+            
+            // Ограничиваем масштаб
+            if (newScale < 0.1 || newScale > 10) return;
+            
+            currentScale = newScale;
+            
+            // Координаты точки после масштабирования
+            const afterX = beforeX * currentScale;
+            const afterY = beforeY * currentScale;
+            
+            // Корректируем смещение
+            currentTranslate.x += pointX - (afterX + currentTranslate.x);
+            currentTranslate.y += pointY - (afterY + currentTranslate.y);
+            
+            updateImageTransform();
+            scheduleElementsUpdate();
+        }
+
+        // Обновление позиций всех измерительных элементов
+        function updateElementsPositions() {
+            clearTemporaryMeasurements();
+            
+            // Обновляем все постоянные измерения
+            measurements.forEach(measurement => {
+                // Удаляем старые элементы
+                measurement.elements.forEach(element => {
+                    element.remove();
+                });
+                
+                // Создаем точки заново
+                const p1 = measurement.points[0];
+                const p2 = measurement.points[1];
+                
+                // Преобразуем в координаты клиента
+                const clientP1 = transformImageToClientCoordinates(p1.x, p1.y);
+                const clientP2 = transformImageToClientCoordinates(p2.x, p2.y);
+                const containerRect = imageContainer.getBoundingClientRect();
+                
+                // Создаем точки
+                const dot1 = document.createElement('div');
+                const dot2 = document.createElement('div');
+                dot1.className = 'measurement-dot';
+                dot2.className = 'measurement-dot';
+                
+                dot1.style.left = (clientP1.x - containerRect.left) + 'px';
+                dot1.style.top = (clientP1.y - containerRect.top) + 'px';
+                dot2.style.left = (clientP2.x - containerRect.left) + 'px';
+                dot2.style.top = (clientP2.y - containerRect.top) + 'px';
+                
+                // Вычисляем параметры линии
+                const dx = clientP2.x - clientP1.x;
+                const dy = clientP2.y - clientP1.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                
+                // Создаем линию
+                const line = document.createElement('div');
+                line.className = 'measurement-line';
+                line.style.left = (clientP1.x - containerRect.left) + 'px';
+                line.style.top = (clientP1.y - containerRect.top) + 'px';
+                line.style.width = length + 'px';
+                line.style.transform = `rotate(${angle}deg)`;
+                line.style.borderTop = `2px solid ${measurement.type === 'scale' ? 'var(--primary-color)' : 'var(--line-color)'}`;
+                
+                // Создаем текст
+                const text = document.createElement('div');
+                text.className = 'measurement-text';
+                
+                const centerX = (clientP1.x + clientP2.x) / 2 - containerRect.left;
+                const centerY = (clientP1.y + clientP2.y) / 2 - containerRect.top;
+                
+                text.style.left = centerX + 'px';
+                text.style.top = centerY + 'px';
+                
+                if (measurement.type === 'scale') {
+                    text.textContent = `${measurement.distance.toFixed(2)} (масштаб)`;
+                    text.style.backgroundColor = 'var(--primary-color)';
+                } else {
+                    text.textContent = measurement.distance.toFixed(2);
+                }
+                
+                imageContainer.appendChild(dot1);
+                imageContainer.appendChild(dot2);
+                imageContainer.appendChild(line);
+                imageContainer.appendChild(text);
+                
+                // Обновляем ссылки на элементы в объекте измерения
+                measurement.elements = [dot1, dot2, line, text];
+            });
+        }
+
+        // Обработка сенсорных событий
+        function handleTouchStart(e) {
+            if (e.touches.length === 1 && !currentMode) {
+                isPanning = true;
+                startPan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                e.preventDefault();
+            } else if (e.touches.length === 2) {
+                // Начало масштабирования (pinch)
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                lastTouchDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                e.preventDefault();
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (isPanning && e.touches.length === 1 && !currentMode) {
+                const touchX = e.touches[0].clientX;
+                const touchY = e.touches[0].clientY;
+                
+                const dx = touchX - startPan.x;
+                const dy = touchY - startPan.y;
+                
+                currentTranslate.x += dx;
+                currentTranslate.y += dy;
+                
+                startPan = { x: touchX, y: touchY };
+                updateImageTransform();
+                
+                // Добавляем вызов функции обновления элементов измерений
+                scheduleElementsUpdate();
+                
+                e.preventDefault();
+            } else if (e.touches.length === 2) {
+                // Масштабирование (pinch)
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                
+                // Вычисляем новое расстояние между пальцами
+                const newDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                
+                // Определяем коэффициент масштабирования
+                const scaleFactor = newDistance / lastTouchDistance;
+                
+                // Вычисляем центр между двумя касаниями
+                const centerX = (touch1.clientX + touch2.clientX) / 2;
+                const centerY = (touch1.clientY + touch2.clientY) / 2;
+                
+                // Преобразуем координаты в относительные для контейнера
+                const rect = imageContainer.getBoundingClientRect();
+                const containerCenterX = centerX - rect.left;
+                const containerCenterY = centerY - rect.top;
+                
+                // Масштабируем вокруг центра между пальцами
+                zoomImageAtPoint(scaleFactor, containerCenterX, containerCenterY);
+                
+                lastTouchDistance = newDistance;
+                e.preventDefault();
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (e.touches.length === 0) {
+                isPanning = false;
+            }
+        }
+
+        // Показать toast сообщение
+        function showToast(message, duration = 3000) {
+            toast.textContent = message;
+            toast.classList.add('visible');
+            
+            setTimeout(() => {
+                toast.classList.remove('visible');
+            }, duration);
+        }
+
+        // Обновление информационной панели
+        function updateInfoPanel(message) {
+            infoPanel.textContent = message;
+        }
+
+        // Переключение панели измерений
+        function toggleMeasurementsPanel() {
+            measurementsPanel.classList.toggle('visible');
+            updateMeasurementsList();
+        }
+
+        // Переключение темы
+        function toggleTheme() {
+            isDarkTheme = !isDarkTheme;
+            document.body.setAttribute('data-theme', isDarkTheme ? 'dark' : 'light');
+            themeToggle.innerHTML = isDarkTheme ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            localStorage.setItem('theme', isDarkTheme ? 'dark' : 'light');
+        }
+
+        // Загрузка темы
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                isDarkTheme = savedTheme === 'dark';
+                document.body.setAttribute('data-theme', isDarkTheme ? 'dark' : 'light');
+                themeToggle.innerHTML = isDarkTheme ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            }
+        }
+
+        // Запуск приложения
+        window.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
