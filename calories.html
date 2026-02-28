@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#4a90d9">
+  <title>Подсчёт калорий</title>
+  <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi0J/QvtC00YHRh9GR0YIg0LrQsNC70L7RgNC40LkiLCJzaG9ydF9uYW1lIjoi0JrQsNC70L7RgNC40LgiLCJzdGFydF91cmwiOiIuL2NhbG9yaWVzLmh0bWwiLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjZjVmN2ZhIiwidGhlbWVfY29sb3IiOiIjNGE5MGQ5In0=">
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      min-height: 100dvh;
+      padding: 0;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #4a90d9, #357abd);
+      color: white;
+      padding: 16px 20px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .container {
+      padding: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    .field-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+
+    .field-label span {
+      font-size: 15px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    .field-label .multiplier {
+      font-size: 13px;
+      color: #999;
+    }
+
+    .field-input {
+      position: relative;
+    }
+
+    .field-input input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 18px;
+      border: 2px solid #e8ecf1;
+      border-radius: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #fafbfc;
+      color: #333;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .field-input input:focus {
+      border-color: #4a90d9;
+      background: white;
+    }
+
+    .field-input input::placeholder {
+      color: #bbb;
+    }
+
+    .field-kcal {
+      text-align: right;
+      margin-top: 6px;
+      font-size: 14px;
+      color: #888;
+      min-height: 20px;
+    }
+
+    .field-kcal strong {
+      color: #4a90d9;
+      font-weight: 600;
+    }
+
+    .proteins .field-input input:focus { border-color: #e74c3c; }
+    .proteins .field-kcal strong { color: #e74c3c; }
+    .proteins .dot { background: #e74c3c; }
+
+    .fats .field-input input:focus { border-color: #f39c12; }
+    .fats .field-kcal strong { color: #f39c12; }
+    .fats .dot { background: #f39c12; }
+
+    .carbs .field-input input:focus { border-color: #27ae60; }
+    .carbs .field-kcal strong { color: #27ae60; }
+    .carbs .dot { background: #27ae60; }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .total-card {
+      background: linear-gradient(135deg, #4a90d9, #357abd);
+      color: white;
+      text-align: center;
+      padding: 24px 20px;
+    }
+
+    .total-label {
+      font-size: 15px;
+      opacity: 0.85;
+      margin-bottom: 4px;
+    }
+
+    .total-value {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .total-unit {
+      font-size: 18px;
+      font-weight: 400;
+      opacity: 0.8;
+    }
+
+    .breakdown {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .breakdown-item {
+      text-align: center;
+    }
+
+    .breakdown-item .label {
+      font-size: 12px;
+      opacity: 0.75;
+      margin-bottom: 2px;
+    }
+
+    .breakdown-item .value {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .btn-clear {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 500;
+      color: #e74c3c;
+      background: white;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: background 0.2s;
+      -webkit-appearance: none;
+    }
+
+    .btn-clear:active {
+      background: #fef0ef;
+    }
+
+    .history-section {
+      margin-top: 16px;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .history-header h2 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .btn-clear-history {
+      font-size: 14px;
+      color: #e74c3c;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    .history-list {
+      list-style: none;
+    }
+
+    .history-item {
+      background: white;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-item-info {
+      flex: 1;
+    }
+
+    .history-item-bju {
+      font-size: 14px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    .history-item-kcal {
+      font-size: 20px;
+      font-weight: 700;
+      color: #4a90d9;
+      margin-left: 12px;
+      white-space: nowrap;
+    }
+
+    .history-item-time {
+      font-size: 13px;
+      color: #aaa;
+    }
+
+    .btn-delete-item {
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 20px;
+      padding: 4px 8px;
+      margin-left: 8px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .btn-delete-item:active {
+      color: #e74c3c;
+    }
+
+    .day-total {
+      background: white;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .day-total-label {
+      font-size: 15px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    .day-total-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #4a90d9;
+    }
+
+    .btn-save {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+      background: linear-gradient(135deg, #27ae60, #219a52);
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(39,174,96,0.3);
+      transition: opacity 0.2s;
+      -webkit-appearance: none;
+      margin-bottom: 12px;
+    }
+
+    .btn-save:active {
+      opacity: 0.85;
+    }
+
+    .btn-save:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .empty-history {
+      text-align: center;
+      color: #bbb;
+      font-size: 14px;
+      padding: 20px 0;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div class="header">
+    <h1>Подсчёт калорий</h1>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <div class="field proteins">
+        <div class="field-label">
+          <span><span class="dot"></span>Белки (г)</span>
+          <span class="multiplier">× 4 ккал</span>
+        </div>
+        <div class="field-input">
+          <input
+            type="number"
+            inputmode="decimal"
+            pattern="[0-9]*\.?[0-9]*"
+            placeholder="0"
+            v-model="proteins"
+            @focus="$event.target.select()"
+          >
+        </div>
+        <div class="field-kcal" v-if="proteinsKcal > 0">
+          <strong>{{ proteinsKcal }}</strong> ккал
+        </div>
+      </div>
+
+      <div class="field fats">
+        <div class="field-label">
+          <span><span class="dot"></span>Жиры (г)</span>
+          <span class="multiplier">× 9 ккал</span>
+        </div>
+        <div class="field-input">
+          <input
+            type="number"
+            inputmode="decimal"
+            pattern="[0-9]*\.?[0-9]*"
+            placeholder="0"
+            v-model="fats"
+            @focus="$event.target.select()"
+          >
+        </div>
+        <div class="field-kcal" v-if="fatsKcal > 0">
+          <strong>{{ fatsKcal }}</strong> ккал
+        </div>
+      </div>
+
+      <div class="field carbs">
+        <div class="field-label">
+          <span><span class="dot"></span>Углеводы (г)</span>
+          <span class="multiplier">× 4 ккал</span>
+        </div>
+        <div class="field-input">
+          <input
+            type="number"
+            inputmode="decimal"
+            pattern="[0-9]*\.?[0-9]*"
+            placeholder="0"
+            v-model="carbs"
+            @focus="$event.target.select()"
+          >
+        </div>
+        <div class="field-kcal" v-if="carbsKcal > 0">
+          <strong>{{ carbsKcal }}</strong> ккал
+        </div>
+      </div>
+    </div>
+
+    <div class="card total-card">
+      <div class="total-label">Итого</div>
+      <div class="total-value">{{ totalKcal }} <span class="total-unit">ккал</span></div>
+      <div class="breakdown">
+        <div class="breakdown-item">
+          <div class="label">Белки</div>
+          <div class="value">{{ proteinsKcal }}</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="label">Жиры</div>
+          <div class="value">{{ fatsKcal }}</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="label">Углеводы</div>
+          <div class="value">{{ carbsKcal }}</div>
+        </div>
+      </div>
+    </div>
+
+    <button
+      class="btn-save"
+      @click="saveEntry"
+      :disabled="totalKcal === 0"
+    >Сохранить запись</button>
+
+    <button class="btn-clear" @click="clearFields">Очистить поля</button>
+
+    <div class="history-section" v-if="history.length > 0">
+      <div class="day-total">
+        <span class="day-total-label">За сегодня</span>
+        <span class="day-total-value">{{ dayTotal }} ккал</span>
+      </div>
+
+      <div class="history-header">
+        <h2>История</h2>
+        <button class="btn-clear-history" @click="clearHistory">Очистить</button>
+      </div>
+
+      <ul class="history-list">
+        <li class="history-item" v-for="(item, index) in historyReversed" :key="item.id">
+          <div class="history-item-info">
+            <div class="history-item-time">{{ item.time }}</div>
+            <div class="history-item-bju">Б {{ item.proteins }} · Ж {{ item.fats }} · У {{ item.carbs }}</div>
+          </div>
+          <div class="history-item-kcal">{{ item.kcal }}</div>
+          <button class="btn-delete-item" @click="deleteEntry(item.id)">×</button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  Vue.createApp({
+    data() {
+      return {
+        proteins: '',
+        fats: '',
+        carbs: '',
+        history: []
+      }
+    },
+    computed: {
+      proteinsKcal() {
+        return Math.round((parseFloat(this.proteins) || 0) * 4);
+      },
+      fatsKcal() {
+        return Math.round((parseFloat(this.fats) || 0) * 9);
+      },
+      carbsKcal() {
+        return Math.round((parseFloat(this.carbs) || 0) * 4);
+      },
+      totalKcal() {
+        return this.proteinsKcal + this.fatsKcal + this.carbsKcal;
+      },
+      dayTotal() {
+        const today = new Date().toLocaleDateString('ru-RU');
+        return this.history
+          .filter(item => item.date === today)
+          .reduce((sum, item) => sum + item.kcal, 0);
+      },
+      historyReversed() {
+        return [...this.history].reverse();
+      }
+    },
+    methods: {
+      clearFields() {
+        this.proteins = '';
+        this.fats = '';
+        this.carbs = '';
+      },
+      saveEntry() {
+        if (this.totalKcal === 0) return;
+        const now = new Date();
+        const entry = {
+          id: Date.now(),
+          date: now.toLocaleDateString('ru-RU'),
+          time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          proteins: parseFloat(this.proteins) || 0,
+          fats: parseFloat(this.fats) || 0,
+          carbs: parseFloat(this.carbs) || 0,
+          kcal: this.totalKcal
+        };
+        this.history.push(entry);
+        this.saveHistory();
+        this.clearFields();
+      },
+      deleteEntry(id) {
+        this.history = this.history.filter(item => item.id !== id);
+        this.saveHistory();
+      },
+      clearHistory() {
+        this.history = [];
+        this.saveHistory();
+      },
+      saveHistory() {
+        localStorage.setItem('calories-history', JSON.stringify(this.history));
+      },
+      loadHistory() {
+        const data = localStorage.getItem('calories-history');
+        if (data) {
+          this.history = JSON.parse(data);
+        }
+      }
+    },
+    mounted() {
+      this.loadHistory();
+    }
+  }).mount('#app');
+</script>
+
+</body>
+</html>
