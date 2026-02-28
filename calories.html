@@ -142,6 +142,70 @@
       vertical-align: middle;
     }
 
+    .weight-card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .weight-icon {
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .weight-label {
+      font-size: 15px;
+      font-weight: 500;
+      color: #555;
+      flex-shrink: 0;
+    }
+
+    .weight-input-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .weight-input-wrap input {
+      width: 80px;
+      padding: 10px 12px;
+      font-size: 18px;
+      font-weight: 600;
+      border: 2px solid #e8ecf1;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #fafbfc;
+      color: #333;
+      text-align: center;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .weight-input-wrap input:focus {
+      border-color: #4a90d9;
+      background: white;
+    }
+
+    .weight-unit {
+      font-size: 15px;
+      color: #999;
+    }
+
+    .per100-hint {
+      font-size: 13px;
+      color: #999;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
     .total-card {
       background: linear-gradient(135deg, #4a90d9, #357abd);
       color: white;
@@ -354,6 +418,24 @@
   </div>
 
   <div class="container">
+    <div class="weight-card">
+      <span class="weight-icon">&#9878;</span>
+      <span class="weight-label">Вес порции</span>
+      <div class="weight-input-wrap">
+        <input
+          type="number"
+          inputmode="decimal"
+          pattern="[0-9]*\.?[0-9]*"
+          placeholder="100"
+          v-model="weight"
+          @focus="$event.target.select()"
+        >
+        <span class="weight-unit">г</span>
+      </div>
+    </div>
+
+    <div class="per100-hint">БЖУ на 100 г (с упаковки)</div>
+
     <div class="card">
       <div class="field proteins">
         <div class="field-label">
@@ -458,7 +540,9 @@
         <li class="history-item" v-for="(item, index) in historyReversed" :key="item.id">
           <div class="history-item-info">
             <div class="history-item-time">{{ item.time }}</div>
-            <div class="history-item-bju">Б {{ item.proteins }} · Ж {{ item.fats }} · У {{ item.carbs }}</div>
+            <div class="history-item-bju">
+              <template v-if="item.weight && item.weight !== 100">{{ item.weight }} г · </template>Б {{ item.proteins }} · Ж {{ item.fats }} · У {{ item.carbs }}
+            </div>
           </div>
           <div class="history-item-kcal">{{ item.kcal }}</div>
           <button class="btn-delete-item" @click="deleteEntry(item.id)">×</button>
@@ -475,18 +559,22 @@
         proteins: '',
         fats: '',
         carbs: '',
+        weight: '100',
         history: []
       }
     },
     computed: {
+      weightMultiplier() {
+        return (parseFloat(this.weight) || 0) / 100;
+      },
       proteinsKcal() {
-        return Math.round((parseFloat(this.proteins) || 0) * 4);
+        return Math.round((parseFloat(this.proteins) || 0) * 4 * this.weightMultiplier);
       },
       fatsKcal() {
-        return Math.round((parseFloat(this.fats) || 0) * 9);
+        return Math.round((parseFloat(this.fats) || 0) * 9 * this.weightMultiplier);
       },
       carbsKcal() {
-        return Math.round((parseFloat(this.carbs) || 0) * 4);
+        return Math.round((parseFloat(this.carbs) || 0) * 4 * this.weightMultiplier);
       },
       totalKcal() {
         return this.proteinsKcal + this.fatsKcal + this.carbsKcal;
@@ -506,10 +594,12 @@
         this.proteins = '';
         this.fats = '';
         this.carbs = '';
+        this.weight = '100';
       },
       saveEntry() {
         if (this.totalKcal === 0) return;
         const now = new Date();
+        const w = parseFloat(this.weight) || 0;
         const entry = {
           id: Date.now(),
           date: now.toLocaleDateString('ru-RU'),
@@ -517,6 +607,7 @@
           proteins: parseFloat(this.proteins) || 0,
           fats: parseFloat(this.fats) || 0,
           carbs: parseFloat(this.carbs) || 0,
+          weight: w,
           kcal: this.totalKcal
         };
         this.history.push(entry);
