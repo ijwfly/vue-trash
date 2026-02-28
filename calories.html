@@ -291,6 +291,30 @@
       color: #333;
     }
 
+    .day-group {
+      margin-bottom: 16px;
+    }
+
+    .day-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+
+    .day-group-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .day-group-total {
+      font-size: 15px;
+      font-weight: 700;
+      color: #4a90d9;
+    }
+
     .btn-clear-history {
       font-size: 14px;
       color: #e74c3c;
@@ -353,27 +377,34 @@
       color: #e74c3c;
     }
 
-    .day-total {
-      background: white;
-      border-radius: 12px;
+    .name-input {
+      width: 100%;
       padding: 14px 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      font-size: 16px;
+      border: 2px solid #e8ecf1;
+      border-radius: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      background: white;
+      color: #333;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      -webkit-appearance: none;
+      appearance: none;
     }
 
-    .day-total-label {
+    .name-input:focus {
+      border-color: #4a90d9;
+    }
+
+    .name-input::placeholder {
+      color: #bbb;
+    }
+
+    .history-item-name {
       font-size: 15px;
-      color: #555;
-      font-weight: 500;
-    }
-
-    .day-total-value {
-      font-size: 22px;
-      font-weight: 700;
-      color: #4a90d9;
+      font-weight: 600;
+      color: #333;
     }
 
     .btn-save {
@@ -517,6 +548,13 @@
       </div>
     </div>
 
+    <input
+      class="name-input"
+      type="text"
+      placeholder="Название (необязательно)"
+      v-model="name"
+    >
+
     <button
       class="btn-save"
       @click="saveEntry"
@@ -525,29 +563,31 @@
 
     <button class="btn-clear" @click="clearFields">Очистить поля</button>
 
-    <div class="history-section" v-if="history.length > 0">
-      <div class="day-total">
-        <span class="day-total-label">За сегодня</span>
-        <span class="day-total-value">{{ dayTotal }} ккал</span>
-      </div>
-
+    <div class="history-section" v-if="groupedHistory.length > 0">
       <div class="history-header">
         <h2>История</h2>
-        <button class="btn-clear-history" @click="clearHistory">Очистить</button>
+        <button class="btn-clear-history" @click="clearHistory">Очистить всё</button>
       </div>
 
-      <ul class="history-list">
-        <li class="history-item" v-for="(item, index) in historyReversed" :key="item.id">
-          <div class="history-item-info">
-            <div class="history-item-time">{{ item.time }}</div>
-            <div class="history-item-bju">
-              <template v-if="item.weight && item.weight !== 100">{{ item.weight }} г · </template>Б {{ item.proteins }} · Ж {{ item.fats }} · У {{ item.carbs }}
+      <div class="day-group" v-for="day in groupedHistory" :key="day.date">
+        <div class="day-group-header">
+          <span class="day-group-label">{{ day.label }}</span>
+          <span class="day-group-total">{{ day.total }} ккал</span>
+        </div>
+        <ul class="history-list">
+          <li class="history-item" v-for="item in day.items" :key="item.id">
+            <div class="history-item-info">
+              <div class="history-item-name" v-if="item.name">{{ item.name }}</div>
+              <div class="history-item-time">{{ item.time }}</div>
+              <div class="history-item-bju">
+                <template v-if="item.weight && item.weight !== 100">{{ item.weight }} г · </template>Б {{ item.proteins }} · Ж {{ item.fats }} · У {{ item.carbs }}
+              </div>
             </div>
-          </div>
-          <div class="history-item-kcal">{{ item.kcal }}</div>
-          <button class="btn-delete-item" @click="deleteEntry(item.id)">×</button>
-        </li>
-      </ul>
+            <div class="history-item-kcal">{{ item.kcal }}</div>
+            <button class="btn-delete-item" @click="deleteEntry(item.id)">×</button>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </div>
@@ -560,6 +600,7 @@
         fats: '',
         carbs: '',
         weight: '100',
+        name: '',
         history: []
       }
     },
@@ -579,14 +620,25 @@
       totalKcal() {
         return this.proteinsKcal + this.fatsKcal + this.carbsKcal;
       },
-      dayTotal() {
-        const today = new Date().toLocaleDateString('ru-RU');
-        return this.history
-          .filter(item => item.date === today)
-          .reduce((sum, item) => sum + item.kcal, 0);
-      },
-      historyReversed() {
-        return [...this.history].reverse();
+      groupedHistory() {
+        const now = new Date();
+        const days = [];
+        for (let i = 0; i < 3; i++) {
+          const d = new Date(now);
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toLocaleDateString('ru-RU');
+          const labels = ['Сегодня', 'Вчера', 'Позавчера'];
+          const items = this.history.filter(item => item.date === dateStr);
+          if (items.length > 0) {
+            days.push({
+              label: labels[i],
+              date: dateStr,
+              items: [...items].reverse(),
+              total: items.reduce((sum, item) => sum + item.kcal, 0)
+            });
+          }
+        }
+        return days;
       }
     },
     methods: {
@@ -595,6 +647,7 @@
         this.fats = '';
         this.carbs = '';
         this.weight = '100';
+        this.name = '';
       },
       saveEntry() {
         if (this.totalKcal === 0) return;
@@ -604,6 +657,7 @@
           id: Date.now(),
           date: now.toLocaleDateString('ru-RU'),
           time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          name: this.name.trim(),
           proteins: parseFloat(this.proteins) || 0,
           fats: parseFloat(this.fats) || 0,
           carbs: parseFloat(this.carbs) || 0,
